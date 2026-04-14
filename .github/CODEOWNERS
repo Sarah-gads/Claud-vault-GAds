@@ -1,0 +1,10 @@
+# Default owners for everything in the repo.
+# Every PR auto-requests a review from these handles.
+* @MSPLaunchpad
+
+# Shared frameworks — Thanh + Lodewijk only.
+/shared/ @MSPLaunchpad
+/scripts/ @MSPLaunchpad
+
+# Bounty briefs — Lodewijk owns scope changes.
+/bounties/ @MSPLaunchpad

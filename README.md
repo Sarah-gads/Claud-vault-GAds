@@ -14,8 +14,10 @@ Shared resources, scripts, and bounty specs for the Launchpad Labs 3-week hackat
 ## Who can edit what
 
 - **Thanh + Lodewijk:** everything (admins)
-- **Participants:** open PRs against `main` — no direct push
-- **Guests:** read-only
+- **Participants:** **read-only.** Changes land via PR from a fork or from their personal repo under the same org. Thanh or Lodewijk merges.
+- **CODEOWNERS** (`.github/CODEOWNERS`) auto-requests review on every PR.
+
+> **Note on branch protection.** The org is on GitHub Free, where branch protection rules and rulesets require Team/Pro. Enforcement is via team convention + repo permissions (participants don't get push on `main`). For hard enforcement before the event, upgrade the org to Team or make this repo public — either unlocks rulesets that require PR + 1 review on `main`.
 
 ## Participant onboarding
 
