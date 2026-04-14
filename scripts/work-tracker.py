@@ -110,52 +110,40 @@ def get_config():
 
 
 # ── Session ID resolution ───────────────────────────────────────────────────
+#
+# Why cwd-keyed?
+#
+# We want each terminal to have its own stable session_id across many tracker
+# calls, so rows don't collide. We can't walk up the process tree reliably —
+# Claude Code spawns bash subshells detached from their parent (PPID=1 inside
+# the shell). The cleanest signal available is the current working directory.
+#
+# The guidance in msp-launchpad/projects/CLAUDE.md already says each GSD project
+# runs in its own subdirectory. That means cwd naturally differs per terminal
+# in the intended workflow — perfect for keying session IDs.
+#
+# When two Claude Code instances DO share a cwd (rare, but Lodewijk hit this
+# with 6 interactive sessions all at C:\Users\mlave\Claude Code\), the script
+# prints a visible warning telling the user to set LAUNCHFLOW_SESSION_ID per
+# terminal. Behavior is still deterministic — all sharers see the same row —
+# but the warning makes the collision debuggable instead of silent.
 
 CLAUDE_SESSIONS_DIR = Path.home() / ".claude" / "sessions"
 LAUNCHFLOW_STATE_DIR = Path.home() / ".launchflow" / "sessions"
 
 
-def _pid_alive(pid: int) -> bool:
-    """Best-effort liveness check across Unix + Windows."""
-    try:
-        if sys.platform == "win32":
-            # Git Bash + Windows: check if /proc/<pid> exists (mingw provides it)
-            if Path(f"/proc/{pid}").exists():
-                return True
-            # Fallback: tasklist — slow but reliable
-            import subprocess
-            r = subprocess.run(
-                ["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"],
-                capture_output=True, text=True, timeout=3,
-            )
-            return str(pid) in (r.stdout or "")
-        else:
-            os.kill(pid, 0)
-            return True
-    except (OSError, ProcessLookupError, PermissionError):
-        # Permission error = process exists but we can't signal it — still alive
-        return isinstance(sys.exc_info()[1], PermissionError)
-    except Exception:
-        return False
+def _count_claude_sessions_sharing_cwd() -> int:
+    """How many interactive Claude Code sessions share our cwd?
 
-
-def _find_claude_code_session_id() -> str | None:
-    """Scan ~/.claude/sessions/*.json and find the matching Claude Code conversation.
-
-    Priority:
-      1. Interactive session whose cwd matches current cwd (or is a prefix).
-      2. Most recently started interactive session with a live PID.
-      3. Most recently started interactive session (ignoring PID liveness).
+    Used only to surface a warning — not to pick a session.
     """
     if not CLAUDE_SESSIONS_DIR.exists():
-        return None
-
+        return 0
     try:
         cwd = Path.cwd().resolve()
     except OSError:
-        cwd = None
-
-    candidates = []
+        return 0
+    count = 0
     for f in CLAUDE_SESSIONS_DIR.glob("*.json"):
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
@@ -163,38 +151,19 @@ def _find_claude_code_session_id() -> str | None:
             continue
         if data.get("kind") != "interactive":
             continue
-        sid = data.get("sessionId")
-        pid = data.get("pid")
-        started = data.get("startedAt", 0)
         sess_cwd = data.get("cwd")
-        if not sid:
+        if not sess_cwd:
             continue
-
-        # Score by cwd match quality
-        score = 0
-        if cwd and sess_cwd:
-            try:
-                sess_cwd_p = Path(sess_cwd).resolve()
-                if sess_cwd_p == cwd:
-                    score = 2
-                elif cwd.is_relative_to(sess_cwd_p) if hasattr(cwd, "is_relative_to") else str(cwd).startswith(str(sess_cwd_p)):
-                    score = 1
-            except Exception:
-                pass
-
-        alive = _pid_alive(pid) if isinstance(pid, int) else False
-        candidates.append((score, alive, started, sid))
-
-    if not candidates:
-        return None
-
-    # Sort: highest score, then alive first, then most recent
-    candidates.sort(key=lambda c: (c[0], c[1], c[2]), reverse=True)
-    return candidates[0][3]
+        try:
+            if Path(sess_cwd).resolve() == cwd:
+                count += 1
+        except Exception:
+            pass
+    return count
 
 
 def _cwd_keyed_session_id() -> str:
-    """Fallback: persist a UUID per (cwd) so repeated script calls from the same workspace share a session."""
+    """Return (or create) the stable session_id for this working directory."""
     LAUNCHFLOW_STATE_DIR.mkdir(parents=True, exist_ok=True)
     import hashlib
     key = hashlib.sha1(str(Path.cwd().resolve()).encode("utf-8")).hexdigest()[:16]
@@ -217,15 +186,28 @@ def _cwd_keyed_session_id() -> str:
 
 
 def resolve_session_id(cli_override: str | None, cfg_override: str | None) -> tuple[str, str]:
-    """Return (session_id, source_label)."""
+    """Return (session_id, source_label). See top-of-section comment for rationale."""
     if cli_override:
         return cli_override, "cli --session-id"
     if cfg_override:
         return cfg_override, "LAUNCHFLOW_SESSION_ID env/.env"
-    sid = _find_claude_code_session_id()
-    if sid:
-        return sid, "~/.claude/sessions/*.json (matched by cwd)"
-    return _cwd_keyed_session_id(), "~/.launchflow/sessions/cwd-*.txt (cwd-keyed fallback)"
+
+    sharers = _count_claude_sessions_sharing_cwd()
+    if sharers > 1:
+        print(
+            f"WARNING: {sharers} Claude Code interactive sessions share this cwd "
+            f"({Path.cwd()}). Without LAUNCHFLOW_SESSION_ID set per terminal, they "
+            f"will all share the same LaunchFlow row and overwrite each other. "
+            f"Set LAUNCHFLOW_SESSION_ID=<uuid> in the terminal's shell, or run each "
+            f"Claude Code from a project-specific subdirectory (e.g. the GSD project "
+            f"folder under msp-launchpad/projects/).",
+            file=sys.stderr,
+        )
+
+    return _cwd_keyed_session_id(), (
+        f"cwd-keyed (~/.launchflow/sessions/cwd-*.txt)"
+        + (f" — WARNING: {sharers} Claude sessions share this cwd" if sharers > 1 else "")
+    )
 
 
 # ── Supabase REST client ────────────────────────────────────────────────────
