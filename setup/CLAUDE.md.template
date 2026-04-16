@@ -1,0 +1,118 @@
+# Launchpad Labs — [PARTICIPANT_NAME]'s Workspace
+
+> **Source of truth.** This template lives at `MSPLaunchpadLabs/level-up/setup/CLAUDE.md.template`. The install prompt copies it into each participant's workspace as `CLAUDE.md` and fills in the placeholders. Do not fork this template into research drafts.
+
+## Who You Are
+- **Name:** [PARTICIPANT_NAME]
+- **Role:** [PARTICIPANT_ROLE]
+- **Bounty:** [BOUNTY_NAME] — see `bounty/BOUNTY.md` for the full brief
+- **Event:** Launchpad Labs, 3-week hackathon, April/May 2026
+- **Discord:** [PARTICIPANT_HANDLE]
+- **Tech level:** [TECH_LEVEL — "new to code" | "intermediate" | "experienced"]
+- **Coaching mode:** [COACHING_MODE — one of:]
+  - *"Plain-language, explain each step before running it, pause after big moves, give browser click-by-click when I need to log in."*
+  - *"Narrate what you're doing, briefly explain every command, don't over-explain."*
+  - *"Terse, just work, one-line confirmations."*
+
+## How This File Works
+Claude Code reads this file at the start of every conversation. It tells Claude who you are, what you're building, and what rules to follow. Do not delete or rename this file.
+
+**Every session:**
+1. Tell Claude what you want to work on today.
+2. Claude reads `bounty/PROGRESS.md` to remember where you left off.
+3. Build. (LaunchFlow tracking is automatic — see below.)
+
+## What Claude Can Do Without Asking
+- Create, edit, and delete files inside this workspace folder
+- Read shared resources in the cloned `level-up` repo under `shared/`
+- Run scripts, install packages, and execute code locally
+- Make git commits and push to your branch on GitHub
+- Call APIs using the keys in your `.env` file
+
+## What Claude Must Ask You Before Doing
+- Sending anything externally (emails, Discord messages, webhooks to live systems)
+- Modifying any shared file in the `level-up` repo's `shared/` folder
+- Spending money via a paid API (image generation, etc.) above $2 per action
+- Deploying anything to a public URL (Vercel, Webflow, etc.)
+
+## What Claude Must Never Do
+- Commit `.env` files or any file containing API keys to GitHub
+- Access another participant's repo or files
+- Connect to any Supabase project other than the Launchpad Labs Sandbox (`dtfljepvwblmgfcjvkkz`)
+- Modify any n8n workflow that existed before the event started
+- Send email to real client addresses without Thanh or Lodewijk approving
+- Touch production databases (Executive Vault, Team Operations, Review Gen)
+
+## Safety Rules
+
+### The 5 Golden Rules
+1. **Never commit .env files to GitHub.** If Claude tries to `git add .env`, stop it. Ask Thanh if you're not sure what a .env file is.
+2. **Never touch existing n8n workflows.** You can build new ones. You cannot edit, activate, or deactivate ones that were already there.
+3. **Never send real emails or messages without approval.** Build the tool, show it to Thanh, then run it for real.
+4. **Stay in the sandbox.** Your Supabase project is the Launchpad Labs Sandbox (`dtfljepvwblmgfcjvkkz`). If you see a different project URL, stop and ask Thanh.
+5. **If you accidentally expose a key, tell Thanh within 5 minutes.** No penalty for honest mistakes. Serious problem if you wait.
+
+### Supabase Rules
+- You have access to ONE project: Launchpad Labs Sandbox (`dtfljepvwblmgfcjvkkz`)
+- You can create tables, add data, run queries, build functions — all allowed
+- Never use a "service key" unless Thanh gave it to you specifically
+- If Claude generates a connection to a different Supabase project URL, change it to the sandbox
+
+### n8n Rules
+- You can create brand-new workflows in the `[EVENT]` folder only
+- Never modify, delete, activate, or deactivate any existing workflow
+- Before activating any workflow you built, show it to Thanh
+- Use only credentials named "Anthropic (Event)", "Supabase (Sandbox)", "Resend (Sandbox)"
+
+### Git Rules
+- Never commit `.env` files (`.gitignore` blocks it — that's the safety net, not your habit)
+- Work on your own branch: `[PARTICIPANT_NAME]/[feature-name]`
+- Submit your bounty by opening a Pull Request to `main`
+
+## Credentials
+Your API keys are in the `.env` file at the root of this workspace. See `setup/credentials.md` for what each key does and how to use it. If a key is missing, ask Thanh — not Lodewijk.
+
+## When You Are Stuck
+
+**Step 1:** Read `setup/getting-unstuck.md` — it covers the 15 most common problems with exact fixes.
+
+**Step 2:** Search shared resources in the `level-up` repo's `shared/` folder for examples and frameworks.
+
+**Step 3:** Ask Thanh. He handles: API access, GitHub issues, deployment, technical questions. Contact: [THANH_DISCORD_HANDLE] in `#level-up` — response within 2 hours during event hours.
+
+**Step 4:** Ask Lodewijk. He handles: bounty scope changes, budget approvals, strategic decisions. Contact: [LODEWIJK_DISCORD_HANDLE] — only after steps 1-3 are exhausted.
+
+**Rule: Do not ask Lodewijk anything Thanh can answer.**
+
+## Git Workflow (Quick Version)
+Full guide: `setup/git-workflow.md`
+
+1. Work on your branch: `git checkout -b [PARTICIPANT_NAME]/feature-name`
+2. Commit often: `git commit -m "add: what you built"`
+3. Push: `git push origin [PARTICIPANT_NAME]/feature-name`
+4. When done: open a Pull Request to `main` — that's your submission
+
+## LaunchFlow Work Tracking
+**Automatic.** The install prompt wired up a Claude Code hook that registers every session with LaunchFlow — you never run a "start session" command. Sessions appear on the Live Work tab at https://launchflow.msplaunchpad.com within seconds of Claude Code starting.
+
+If LaunchFlow shows nothing for you:
+1. Check `~/.launchflow/.env` has your `LAUNCHFLOW_MEMBER_NAME`, `LAUNCHFLOW_SUPABASE_URL`, and `LAUNCHFLOW_SUPABASE_SERVICE_KEY`.
+2. Re-run `node scripts/launchflow-setup.js` from the `level-up` repo. It's idempotent.
+3. Ask Thanh.
+
+## Shared Frameworks
+These were built during the first days of the event. Use them — don't reinvent them.
+- **Visual brand:** `level-up/shared/brand/brand-framework.md`
+- **Voice and copy:** `level-up/shared/brand/voice-profile.md`
+- **Skill anatomy:** `level-up/shared/skill-anatomy.md`
+
+## Session Memory
+Claude updates `bounty/PROGRESS.md` at the end of every session. It tracks what was built, what's broken, and what to do next. Read it at the start of each session.
+
+**Claude rule:** At the end of every session, append to `bounty/PROGRESS.md` with today's date, what was done, what's broken, and what to do next session. Keep each entry under 300 words. Never overwrite previous entries — always append.
+
+## Event Rules
+- Each bounty has a "Shipped + Proven" bar — read `bounty/BOUNTY.md` for yours.
+- Demo Day: you must present your work. Not working = does not qualify for prizes.
+- If your bounty feels already built, check with Thanh before starting from scratch.
+- Pull latest shared resources before starting each session: `cd ~/launchpad-labs && git pull origin main`.

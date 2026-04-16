@@ -27,7 +27,9 @@ Participants `git pull` this repo once per session to stay in sync with shared r
 
 ## Live work tracking
 
-All sessions register with LaunchFlow via `scripts/work-tracker.py`. See `setup/launchflow-guide.md`.
+Sessions register with LaunchFlow **automatically** via a Claude Code hook. One-time install: `node scripts/launchflow-setup.js`. After that, every Claude Code session auto-appears on the Live Work tab — participants never run a "start session" command. See `setup/launchflow-guide.md`.
+
+The old Python script (`scripts/work-tracker.py`) is retained as a manual fallback; the hook is the default path.
 
 LaunchFlow: https://launchflow.msplaunchpad.com (EVENT tab)
 
