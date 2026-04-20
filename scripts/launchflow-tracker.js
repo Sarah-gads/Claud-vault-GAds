@@ -225,6 +225,32 @@ const CATALOG_SOURCES = [
   { table: 'event_bounties',       select: 'title',                  kind: 'bounty',     nameField: 'title' },
 ];
 
+// Also harvest project names actually used in the Live Work tab in the last
+// 30 days. This captures project labels the team uses but that don't exist
+// in any catalog table — e.g. "The Heart", "Zhero Design Gen v2.5", "Kavira".
+// Whatever someone has manually tracked becomes the catalog for auto-matching.
+async function fetchLiveWorkHistory(cfg) {
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const rows = await supabaseRequestTable(
+      cfg, 'ob_live_work',
+      `select=${encodeURIComponent('project_name')}&started_at=gte.${encodeURIComponent(cutoff)}&limit=500`,
+    );
+    const seen = new Set();
+    const items = [];
+    for (const r of rows) {
+      const n = String(r.project_name || '').trim();
+      if (!n) continue;
+      const key = n.toLowerCase();
+      if (seen.has(key)) continue;
+      if (/^(new input|new session|claude code workspace|claude code session|session [a-f0-9]{6,})$/i.test(n)) continue;
+      seen.add(key);
+      items.push({ name: n, kind: 'live_history', projectDir: null });
+    }
+    return items;
+  } catch (e) { log(`live-work harvest failed: ${e.message}`); return []; }
+}
+
 async function fetchAllCatalog(cfg) {
   const items = [];
   for (const src of CATALOG_SOURCES) {
@@ -241,6 +267,9 @@ async function fetchAllCatalog(cfg) {
       }
     } catch (e) { log(`catalog fetch ${src.table} failed: ${e.message}`); }
   }
+  // Merge in project names actually used on the Live Work tab recently
+  const liveHistory = await fetchLiveWorkHistory(cfg);
+  for (const h of liveHistory) items.push(h);
   return items;
 }
 
@@ -352,7 +381,13 @@ function matchCatalog(items, text, cwd) {
     if (nameTokens.size === 0) continue;
     let hits = 0;
     for (const t of nameTokens) if (textTokens.has(t)) hits++;
-    if (hits < MATCH_MIN_TOKENS) continue;
+    if (hits === 0) continue;
+    // Special case: names with only ONE distinctive token (e.g. "The Heart"
+    // → {heart}, "Kavira" → {kavira}) can match on a single token hit IF
+    // that token is specific enough (>=5 chars). This avoids requiring 2
+    // tokens when the project name only has one.
+    const singleTokenMatch = nameTokens.size === 1 && hits === 1 && [...nameTokens][0].length >= 5;
+    if (!singleTokenMatch && hits < MATCH_MIN_TOKENS) continue;
     const score = hits / nameTokens.size;
     if (score < MATCH_MIN_SCORE) continue;
     if (!best || score > best.score || (score === best.score && nameTokens.size > best.tokenCount)) {
@@ -942,27 +977,47 @@ async function handleCleanup() {
 
   // Pass 2 — for every pair where a hook-owned row has the same member + same
   // normalised project name as a foreign (Python-tracker) row, complete the
-  // hook-owned one. The Python-tracker row is the authoritative record.
+  // OLDER/STALER one. Earlier we preferred foreign, which erased live hook
+  // sessions whose session_id was still alive. New rule:
+  //   • If the hook row's session_id is in the live process registry,
+  //     the hook row IS the live representation — keep it, expire the foreign.
+  //   • Otherwise (hook session dead, foreign alive), complete the hook row.
+  const liveIdsSet = liveClaudeSessionIds();
   const groups = new Map();
   for (const r of rows) {
     const key = `${(r.member_name || '').toLowerCase()}|${normalizeProject(r.project_name)}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   }
-  for (const [key, group] of groups) {
+  for (const [_key, group] of groups) {
     if (group.length < 2) continue;
     const foreign = group.filter((g) => !isHookOwned(g));
     const hookOwned = group.filter((g) => isHookOwned(g));
     if (foreign.length === 0 || hookOwned.length === 0) continue;
-    // Keep the freshest foreign row, complete all hook-owned dupes
-    for (const dup of hookOwned) {
-      console.log(`  dedupe  ${dup.session_id.slice(0, 8)}  (duplicate of foreign "${foreign[0].project_name}")`);
-      await supabaseRequest(
-        cfg, 'PATCH',
-        `id=eq.${dup.id}`,
-        { status: 'completed', completed_at: now(), last_heartbeat: now(), progress_notes: 'Auto-deduped: same project tracked manually via work-tracker.py' },
-      );
-      dedupedHookDupes++;
+
+    const hookLive = hookOwned.filter((g) => liveIdsSet.has(g.session_id));
+    if (hookLive.length > 0) {
+      // Hook row represents a live session → it wins. Complete foreign rows.
+      for (const f of foreign) {
+        console.log(`  dedupe  ${(f.session_id || '').slice(0, 8)}  foreign "${f.project_name}" → superseded by live hook session`);
+        await supabaseRequest(
+          cfg, 'PATCH',
+          `id=eq.${f.id}&status=in.(active,paused)`,
+          { status: 'completed', completed_at: now(), last_heartbeat: now(), progress_notes: 'Auto-deduped: live Claude Code hook session is now authoritative' },
+        );
+        dedupedHookDupes++;
+      }
+    } else {
+      // No live hook session → Python-tracker row is authoritative, hook row is orphan
+      for (const dup of hookOwned) {
+        console.log(`  dedupe  ${dup.session_id.slice(0, 8)}  hook (dead) "${dup.project_name}" → superseded by foreign row`);
+        await supabaseRequest(
+          cfg, 'PATCH',
+          `id=eq.${dup.id}`,
+          { status: 'completed', completed_at: now(), last_heartbeat: now(), progress_notes: 'Auto-deduped: same project tracked manually via work-tracker.py' },
+        );
+        dedupedHookDupes++;
+      }
     }
   }
 
@@ -1027,7 +1082,7 @@ async function handleCleanup() {
 
 // ─── Whoami diagnostic ───────────────────────────────────────────────────────
 
-function handleWhoami() {
+async function handleWhoami() {
   const cwd = process.cwd();
   const cfg = loadConfig(cwd);
   const mspCtx = isMspLaunchpadContext(cwd);
@@ -1043,6 +1098,23 @@ function handleWhoami() {
     const found = fs.existsSync(f) ? 'found' : '    -';
     console.log(`    ${found}  ${f}`);
   }
+
+  // Network probe — confirm the key actually authenticates against Supabase
+  // and that the narrow grants are in place. SELECT with limit=0 is the
+  // cheapest read; PostgREST returns [] on success, 401/403 on auth failure.
+  if (!cfg.url || !cfg.serviceKey) {
+    console.log('  key probe          : SKIPPED (missing url or key)');
+    process.exitCode = 1;
+    return;
+  }
+  try {
+    await supabaseRequest(cfg, 'GET', 'select=id&limit=0');
+    console.log('  key probe          : ok (auth + ob_live_work read OK)');
+  } catch (e) {
+    console.log(`  key probe          : FAIL (${e.message})`);
+    console.log('                       Key is missing, expired, revoked, or lacks RLS grant.');
+    process.exitCode = 1;
+  }
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -1053,7 +1125,7 @@ async function main() {
     if (HOOK_MODE === 'retro') { await handleRetro(); return; }
     if (HOOK_MODE === 'cleanup' || HOOK_MODE === 'dedup') { await handleCleanup(); return; }
     if (HOOK_MODE === 'refresh-catalog' || HOOK_MODE === 'catalog') { await handleRefreshCatalog(); return; }
-    if (HOOK_MODE === 'whoami') { handleWhoami(); return; }
+    if (HOOK_MODE === 'whoami') { await handleWhoami(); return; }
 
     // Hook commands — read stdin JSON
     const hookData = await readStdin();
