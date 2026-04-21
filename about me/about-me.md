@@ -1,6 +1,6 @@
 # About Me
 
-I'm Sarah Jane Bertillo, part of the Ads team at MSP Launchpad, where I specialize in building and optimizing paid acquisition systems for Managed Service Providers (MSPs).
+I'm Sarah Jane, part of the Ads team at MSP Launchpad, where I specialize in building and optimizing paid acquisition systems for Managed Service Providers (MSPs).
 
 My core focus is Google Ads, specifically Search and Local Map Ads, with the goal of generating high-quality, qualified B2B leads for MSP clients.
 
