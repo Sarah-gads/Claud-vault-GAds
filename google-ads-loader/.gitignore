@@ -1,0 +1,7 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+client_configs/
+campaign_registry.json

@@ -1,0 +1,32 @@
+# RSA Template Pool for MSP Campaigns
+# Google Ads character limits: headlines ≤ 30 chars, descriptions ≤ 90 chars
+# Need: 3–15 headlines, 2–4 descriptions
+# Placeholders: {city} and {offer1}, {offer2}, {offer3} are substituted at render time
+# The first 3 headlines will be pinned to positions 1, 2, 3 respectively
+# All entries validated against char limits in ad_builder.py
+
+headlines:
+  # Pinned positions (first 3 = pinned to H1, H2, H3)
+  - "Managed IT Services"           # 19 chars — pinned H1
+  - "24/7 IT Help Desk"             # 17 chars — pinned H2
+  - "Call for a Free Quote"         # 21 chars — pinned H3
+
+  # Unpinned pool
+  - "No IT Headaches"               # 15 chars
+  - "Flat-Rate IT Support"          # 20 chars
+  - "Trusted MSP Partner"           # 19 chars
+  - "Microsoft 365 Experts"         # 21 chars
+  - "Cybersecurity Included"        # 22 chars
+  - "Proactive IT Management"       # 23 chars
+  - "Small Business IT Pros"        # 22 chars
+  - "No Long-Term Contracts"        # 22 chars
+  - "Free IT Assessment"            # 18 chars
+  - "Cloud & Backup Solutions"      # 24 chars
+  - "Local IT Team"                 # 13 chars
+  - "IT Support You Can Trust"      # 24 chars
+
+descriptions:
+  - "Expert managed IT services for small businesses. No long-term contracts. Call us today."
+  - "24/7 help desk, cybersecurity, backups & Microsoft 365. One flat monthly rate."
+  - "Proactive monitoring stops IT problems before they hurt your business. Free assessment."
+  - "Local IT team, enterprise-level results. Flat-rate support with no surprises. Call now."

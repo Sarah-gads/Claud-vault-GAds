@@ -1,0 +1,15 @@
+# Default MSP Structured Snippet Extensions
+# header must be from Google's approved list (Services, Products, Brands, etc.)
+# values: max 25 chars each, minimum 3 values required
+
+structured_snippets:
+  - header: "Services"
+    values:
+      - "Managed IT Support"
+      - "Cybersecurity"
+      - "Cloud Solutions"
+      - "Microsoft 365"
+      - "Data Backup & Recovery"
+      - "Network Monitoring"
+      - "Help Desk Support"
+      - "IT Strategy & Consulting"

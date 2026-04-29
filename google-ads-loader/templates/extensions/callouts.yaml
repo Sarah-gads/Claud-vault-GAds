@@ -1,0 +1,16 @@
+# Default MSP Callout Extensions
+# Max 25 characters per callout
+
+callouts:
+  - "24/7 Help Desk Support"
+  - "No Long-Term Contracts"
+  - "Free IT Assessment"
+  - "Flat Monthly Pricing"
+  - "Local IT Experts"
+  - "Microsoft Certified"
+  - "Cybersecurity Experts"
+  - "Fast Response Times"
+  - "Proactive Monitoring"
+  - "Cloud Migration Experts"
+  - "No Hidden Fees"
+  - "Same-Day Response"

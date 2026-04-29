@@ -1,0 +1,44 @@
+# MSP Core Keywords — included in all MSP campaigns by default
+# Format: "keyword" = phrase match, [keyword] = exact match, keyword = broad match
+# Use {city} as a placeholder — replaced with the client's city_substitution at runtime
+# Lines starting with # and blank lines are ignored
+
+# --- Phrase Match: General MSP ---
+"managed it services"
+"managed service provider"
+"it support company"
+"it managed services"
+"outsourced it support"
+"it services for small business"
+"managed it support"
+"it consulting services"
+"business it support"
+"network support services"
+"computer support services"
+"remote it support"
+"monthly it support"
+"proactive it support"
+"managed network services"
+"it helpdesk services"
+"it infrastructure support"
+"small business managed it"
+
+# --- Phrase Match: City-Specific (city substitution applied at runtime) ---
+"managed it services {city}"
+"it support {city}"
+"managed service provider {city}"
+"it support company {city}"
+"it services {city}"
+"computer support {city}"
+"it consulting {city}"
+"managed it {city}"
+
+# --- Exact Match: High-Intent ---
+[managed it services]
+[it support services]
+[managed service provider]
+[it support company]
+[outsourced it support]
+[managed it support]
+[it managed services]
+[computer support services]

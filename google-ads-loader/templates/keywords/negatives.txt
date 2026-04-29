@@ -1,0 +1,69 @@
+# MSP Negative Keywords — added as a shared negative keyword list on every campaign
+# All entries are treated as broad match negatives unless prefixed with "..." (phrase) or [...] (exact)
+# Lines starting with # and blank lines are ignored
+
+# --- Job Seekers ---
+jobs
+careers
+salary
+job openings
+it support resume
+managed it jobs
+managed services careers
+it manager jobs
+it director jobs
+helpdesk jobs
+internship
+
+# --- Training & Certification (people learning, not buying) ---
+training
+certification
+comptia
+network+ certification
+itil certification
+it support course
+managed services training
+how to become
+it support degree
+computer science degree
+it support program
+
+# --- DIY / Free Tools ---
+free managed it
+diy it support
+open source it management
+free it support tools
+free network monitoring
+free rmm tool
+free helpdesk software
+
+# --- Informational / Research ---
+what is managed it
+what is an msp
+managed services definition
+managed services vs
+it support reddit
+it support forum
+it support review
+it support blog
+it support tutorial
+how to manage it services
+managed services explained
+
+# --- Software / Product Searches (not service buyers) ---
+it support software
+rmm software
+psa software
+helpdesk software
+ticketing system
+it service management software
+buy it software
+it tools
+
+# --- Consumer / Residential (we serve businesses) ---
+home computer support
+home it support
+personal computer help
+residential it
+home network setup
+fix my computer
