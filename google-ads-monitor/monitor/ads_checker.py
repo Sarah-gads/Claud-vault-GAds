@@ -149,6 +149,7 @@ class AdsChecker:
         issues = []
         end_date = datetime.today().strftime("%Y-%m-%d")
         start_date = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+        # GAQL doesn't support HAVING with date-segmented queries — aggregate in Python
         query = f"""
             SELECT
                 customer.id,
@@ -159,23 +160,34 @@ class AdsChecker:
             FROM campaign
             WHERE campaign.status = 'ENABLED'
               AND segments.date BETWEEN '{start_date}' AND '{end_date}'
-            HAVING metrics.impressions = 0
         """
         try:
+            totals: dict[str, dict] = {}
             for row in self._search(customer_id, query):
-                issues.append({
-                    "type": "zero_impressions",
-                    "account_id": customer_id,
-                    "account_name": row.customer.descriptive_name,
-                    "campaign_id": str(row.campaign.id),
-                    "campaign_name": row.campaign.name,
-                    "ad_id": "",
-                    "period": f"{start_date} to {end_date}",
-                    "details": (
-                        f"Campaign '{row.campaign.name}' received 0 impressions "
-                        f"in the last 7 days ({start_date} to {end_date})."
-                    ),
-                })
+                cid = str(row.campaign.id)
+                if cid not in totals:
+                    totals[cid] = {
+                        "name": row.campaign.name,
+                        "account_name": row.customer.descriptive_name,
+                        "impressions": 0,
+                    }
+                totals[cid]["impressions"] += row.metrics.impressions
+
+            for cid, data in totals.items():
+                if data["impressions"] == 0:
+                    issues.append({
+                        "type": "zero_impressions",
+                        "account_id": customer_id,
+                        "account_name": data["account_name"],
+                        "campaign_id": cid,
+                        "campaign_name": data["name"],
+                        "ad_id": "",
+                        "period": f"{start_date} to {end_date}",
+                        "details": (
+                            f"Campaign '{data['name']}' received 0 impressions "
+                            f"in the last 7 days ({start_date} to {end_date})."
+                        ),
+                    })
         except GoogleAdsException as e:
             logger.error(f"[{customer_id}] Error checking zero impressions: {e}")
         return issues
