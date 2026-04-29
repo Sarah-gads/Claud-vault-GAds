@@ -28,6 +28,9 @@ class AdsChecker:
             return []
 
         for customer_id in customer_ids:
+            if not self._has_active_campaigns(customer_id):
+                logger.debug(f"Skipping account {customer_id} — no active campaigns or not accessible.")
+                continue
             logger.info(f"Checking account {customer_id}")
             try:
                 issues.extend(self._check_disapprovals(customer_id))
@@ -40,6 +43,18 @@ class AdsChecker:
                 logger.error(f"Unexpected error checking account {customer_id}: {e}")
 
         return issues
+
+    def _has_active_campaigns(self, customer_id: str) -> bool:
+        query = """
+            SELECT campaign.id
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+            LIMIT 1
+        """
+        try:
+            return any(True for _ in self._search(customer_id, query))
+        except GoogleAdsException:
+            return False
 
     def _search(self, customer_id: str, query: str):
         ga_service = self.client.get_service("GoogleAdsService")
