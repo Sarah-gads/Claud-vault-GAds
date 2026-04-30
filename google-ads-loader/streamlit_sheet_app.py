@@ -235,16 +235,11 @@ def main():
         chosen = st.selectbox("Ad Account", labels, index=labels.index(cur_label), label_visibility="collapsed")
         if chosen != "— Select an account —":
             acct = acct_options[chosen]
-            if acct["id"] != s.selected_account_id:
-                s.selected_account_id = acct["id"]
-                s.customer_id         = acct["id"]
-                s.client_name         = acct["name"]
-                st.rerun()
+            # Always sync — fixes state loss after reruns
+            s.selected_account_id = acct["id"]
+            s.customer_id         = acct["id"]
+            s.client_name         = acct["name"]
             st.caption(f"`{acct['currency']}` · {acct['tz']}")
-        else:
-            s.selected_account_id = ""
-            s.customer_id = ""
-            s.client_name = ""
 
     st.divider()
 
@@ -289,14 +284,16 @@ def main():
     # ── Step 3: Launch ────────────────────────────────────────────────────────
     st.markdown("### 3 · Create Campaign")
 
-    ready = bool(s.customer_id and s.sheet_config)
-    if not s.customer_id:
-        st.caption("Select an account above.")
-    if not s.sheet_config:
-        st.caption("Load a Google Sheet above.")
+    acct_ok  = bool(s.customer_id)
+    sheet_ok = bool(s.sheet_config)
+    ready    = acct_ok and sheet_ok
+
+    c1, c2 = st.columns(2)
+    c1.markdown(f"{'✅' if acct_ok  else '⬜'} Ad account {'selected' if acct_ok else 'not selected'}")
+    c2.markdown(f"{'✅' if sheet_ok else '⬜'} Sheet {'loaded' if sheet_ok else 'not loaded'}")
 
     if ready:
-        from loader.validator import ConfigValidator, format_errors
+        from loader.validator import ConfigValidator
         config = dict(s.sheet_config)
         config["client"] = {"name": s.client_name, "customer_id": s.customer_id}
 
@@ -307,8 +304,9 @@ def main():
                 st.markdown(f"- `{e.field}` — {e.message}")
         else:
             st.warning("⚠️ Campaign will be created **PAUSED** for manual review. A ClickUp task will be created.")
-            if st.button("🚀 Create Campaign (PAUSED)", type="primary", use_container_width=True):
-                _run_launch(config)
+
+    if st.button("🚀 Create Campaign (PAUSED)", type="primary", use_container_width=True, disabled=not ready):
+        _run_launch(config)
 
     result = s.last_result
     if result:
