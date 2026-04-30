@@ -84,22 +84,31 @@ class KeywordUploader:
         self,
         customer_id: str,
         campaign_resource: str,
-        negatives_config: list[dict],
+        negative_lists: list[dict],
     ) -> int:
-        negatives = [
-            (kw["text"].strip(), kw.get("match_type", "BROAD").upper())
-            for kw in negatives_config
-            if kw.get("text", "").strip()
-        ]
-        if negatives:
-            self._upload_negative_list(customer_id, campaign_resource, negatives)
-        return len(negatives)
+        """
+        negative_lists: [{name: str, keywords: [{text, match_type}]}]
+        Creates one named shared negative set per list entry.
+        """
+        total = 0
+        for lst in negative_lists:
+            name = lst.get("name") or "Negative List"
+            negatives = [
+                (kw["text"].strip(), kw.get("match_type", "BROAD").upper())
+                for kw in lst.get("keywords", [])
+                if kw.get("text", "").strip()
+            ]
+            if negatives:
+                self._upload_negative_list(customer_id, campaign_resource, negatives, list_name=name)
+                total += len(negatives)
+        return total
 
     def _upload_negative_list(
         self,
         customer_id: str,
         campaign_resource: str,
         negatives: list[tuple[str, str]],
+        list_name: str | None = None,
     ) -> None:
         shared_set_service          = self.client.get_service("SharedSetService")
         shared_criterion_service    = self.client.get_service("SharedCriterionService")
@@ -109,7 +118,7 @@ class KeywordUploader:
 
         ss_op = self.client.get_type("SharedSetOperation")
         ss = ss_op.create
-        ss.name   = f"Negatives — {client_label}"
+        ss.name   = list_name or f"Negatives — {client_label}"
         ss.type_  = self.client.enums.SharedSetTypeEnum.NEGATIVE_KEYWORDS
 
         try:

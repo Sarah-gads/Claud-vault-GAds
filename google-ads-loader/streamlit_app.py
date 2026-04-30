@@ -75,10 +75,11 @@ def _default_ad_group(name: str = "") -> dict:
 def _init():
     defaults = {
         # Client / campaign
+        "selected_account_id": "",
         "client_name": "", "customer_id": "", "campaign_name": "",
         "daily_budget": 5.0, "bidding": "maximize_conversions",
         "target_cpa": 0.0, "final_url": "",
-        "campaign_neg_kw_raw": "",
+        "neg_kw_lists": [{"name": "General Negatives", "raw": ""}],
         # Ad groups (each has name, cpc_bid, positive keywords, 3 RSAs)
         "ad_groups": [_default_ad_group()],
         # Business assets
@@ -145,6 +146,53 @@ def _save_upload(uploaded_file, subdir: str, filename: str) -> Path:
     return path
 
 
+# ── MCC account list ──────────────────────────────────────────────────────────
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_mcc_accounts() -> list[dict]:
+    """Return all active non-manager sub-accounts under the MCC."""
+    try:
+        from google.ads.googleads.client import GoogleAdsClient
+        client = GoogleAdsClient.load_from_dict({
+            "developer_token":   os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
+            "client_id":         os.environ["GOOGLE_ADS_CLIENT_ID"],
+            "client_secret":     os.environ["GOOGLE_ADS_CLIENT_SECRET"],
+            "refresh_token":     os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
+            "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"],
+            "use_proto_plus": True,
+        })
+        mcc_id = os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"].replace("-", "")
+        svc    = client.get_service("GoogleAdsService")
+        query  = """
+            SELECT
+              customer_client.id,
+              customer_client.descriptive_name,
+              customer_client.currency_code,
+              customer_client.time_zone,
+              customer_client.status
+            FROM customer_client
+            WHERE customer_client.manager = FALSE
+              AND customer_client.status = 'ENABLED'
+              AND customer_client.level <= 3
+            ORDER BY customer_client.descriptive_name
+        """
+        rows = svc.search(customer_id=mcc_id, query=query)
+        accounts = []
+        seen = set()
+        for row in rows:
+            cid = str(row.customer_client.id)
+            if cid not in seen:
+                seen.add(cid)
+                accounts.append({
+                    "id":       cid,
+                    "name":     row.customer_client.descriptive_name or f"Account {cid}",
+                    "currency": row.customer_client.currency_code,
+                    "tz":       row.customer_client.time_zone,
+                })
+        return accounts
+    except Exception as e:
+        return [{"error": str(e)}]
+
+
 # ── Geo search ────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
 def _search_geo(query: str) -> list[dict]:
@@ -177,8 +225,15 @@ def _search_geo(query: str) -> list[dict]:
 def _build_config() -> dict:
     s = st.session_state
 
-    # ── Campaign-level negative keywords ─────────────────────────────────────
-    campaign_neg_kws = _neg_raw_to_json(s.campaign_neg_kw_raw)
+    # ── Campaign-level negative keyword lists ─────────────────────────────────
+    neg_kw_lists = [
+        {
+            "name": lst.get("name") or f"Negative List {i + 1}",
+            "keywords": _neg_raw_to_json(lst.get("raw", "")),
+        }
+        for i, lst in enumerate(s.neg_kw_lists)
+        if _neg_raw_to_json(lst.get("raw", ""))
+    ]
 
     # ── Ad groups ─────────────────────────────────────────────────────────────
     ad_groups_out = []
@@ -266,7 +321,7 @@ def _build_config() -> dict:
             "images": image_rels,
         },
         "ad_groups": ad_groups_out,
-        "campaign_keywords": {"negative": campaign_neg_kws},
+        "campaign_keywords": {"negative_lists": neg_kw_lists},
         "extensions": {
             "sitelinks":           sitelinks,
             "callouts":            callouts,
@@ -291,10 +346,37 @@ def _build_config() -> dict:
 # ── Tab renderers ─────────────────────────────────────────────────────────────
 def _tab_campaign():
     st.subheader("Campaign Setup")
+
+    # ── Account picker ────────────────────────────────────────────────────────
+    with st.spinner("Loading accounts from MCC…"):
+        accounts = _load_mcc_accounts()
+
+    if accounts and "error" in accounts[0]:
+        st.error(f"Could not load MCC accounts: {accounts[0]['error']}")
+        st.session_state.customer_id = st.text_input("Customer ID *", st.session_state.customer_id, placeholder="123-456-7890")
+    else:
+        acct_options = {f"{a['name']} ({a['id']})": a for a in accounts}
+        labels       = ["— Select an account —"] + list(acct_options.keys())
+        cur_label    = next(
+            (lbl for lbl, a in acct_options.items() if a["id"] == st.session_state.selected_account_id),
+            labels[0],
+        )
+        chosen_label = st.selectbox("Ad Account *", labels, index=labels.index(cur_label))
+        if chosen_label != "— Select an account —":
+            acct = acct_options[chosen_label]
+            if acct["id"] != st.session_state.selected_account_id:
+                st.session_state.selected_account_id = acct["id"]
+                st.session_state.customer_id         = acct["id"]
+                st.session_state.client_name         = acct["name"]
+                st.rerun()
+            st.caption(f"Currency: `{acct['currency']}` · Timezone: `{acct['tz']}`")
+        else:
+            st.session_state.selected_account_id = ""
+            st.session_state.customer_id = ""
+            st.session_state.client_name = ""
+
     c1, c2 = st.columns(2)
     with c1:
-        st.session_state.client_name   = st.text_input("Client Name *",   st.session_state.client_name,   placeholder="Acme IT Solutions")
-        st.session_state.customer_id   = st.text_input("Customer ID *",   st.session_state.customer_id,   placeholder="123-456-7890", help="Google Ads account ID — NOT the MCC")
         st.session_state.campaign_name = st.text_input("Campaign Name",   st.session_state.campaign_name, placeholder="Acme IT - MSP Services - Search (auto if blank)")
         st.session_state.final_url     = st.text_input("Landing Page URL *", st.session_state.final_url,  placeholder="https://acmeit.com/managed-services")
     with c2:
@@ -307,18 +389,41 @@ def _tab_campaign():
         st.info("⚠️ Campaign will be created in **PAUSED** status. You must manually enable it after review.")
 
     st.divider()
-    st.markdown("**Campaign-Level Negative Keywords**")
-    st.caption('Applied to the entire campaign · One per line · `[exact]` · `"phrase"` · plain = broad')
-    st.session_state.campaign_neg_kw_raw = st.text_area(
-        "campaign_neg",
-        st.session_state.campaign_neg_kw_raw,
-        height=180,
-        placeholder='free\njobs\ntraining\ncertification\nsoftware\n"it support jobs"\n[free it support]',
-        label_visibility="collapsed",
-    )
-    neg_count = len(_neg_raw_to_json(st.session_state.campaign_neg_kw_raw))
-    if neg_count:
-        st.caption(f"{neg_count} negative(s) — applied to all ad groups in this campaign")
+    st.markdown("**Campaign-Level Negative Keyword Lists**")
+    st.caption('Each list gets its own name in Google Ads · One keyword per line · `[exact]` · `"phrase"` · plain = broad')
+
+    s = st.session_state
+    to_remove_neg = None
+    for ni, neg_list in enumerate(s.neg_kw_lists):
+        with st.expander(f"🚫 {neg_list.get('name') or f'List {ni + 1}'}", expanded=(ni == 0)):
+            nc1, nc2 = st.columns([4, 0.5])
+            with nc1:
+                neg_list["name"] = st.text_input(
+                    "List Name", neg_list.get("name", ""),
+                    key=f"neg_name_{ni}",
+                    placeholder="General Negatives",
+                )
+            with nc2:
+                st.write(""); st.write("")
+                if len(s.neg_kw_lists) > 1 and st.button("✕", key=f"neg_rm_{ni}"):
+                    to_remove_neg = ni
+            neg_list["raw"] = st.text_area(
+                "neg_kw", neg_list.get("raw", ""), height=160,
+                key=f"neg_raw_{ni}",
+                placeholder='free\njobs\ntraining\ncertification\nsoftware\n"it support jobs"\n[free it support]',
+                label_visibility="collapsed",
+            )
+            count = len(_neg_raw_to_json(neg_list.get("raw", "")))
+            if count:
+                st.caption(f"{count} keyword(s) in this list")
+
+    if to_remove_neg is not None:
+        s.neg_kw_lists.pop(to_remove_neg)
+        st.rerun()
+
+    if st.button("＋ Add Negative List"):
+        s.neg_kw_lists.append({"name": "", "raw": ""})
+        st.rerun()
 
 
 def _tab_ad_groups():
@@ -659,8 +764,9 @@ def _tab_launch():
             rsa_count = len([r for r in ag.get("rsa", []) if r.get("headlines")])
             st.markdown(f"**{ag['name']}**")
             st.markdown(f"- CPC `${ag['cpc_bid']:.2f}` · `{pos_count}` pos kws · `{rsa_count}` RSA(s)")
-        neg_count = len(config.get("campaign_keywords", {}).get("negative", []))
-        st.markdown(f"- Campaign negatives: `{neg_count}`")
+        neg_lists = config.get("campaign_keywords", {}).get("negative_lists", [])
+        for nl in neg_lists:
+            st.markdown(f"- 🚫 **{nl['name']}**: `{len(nl['keywords'])}` keywords")
     with c3:
         st.markdown("**Assets & Targeting**")
         sl   = config["extensions"]["sitelinks"]

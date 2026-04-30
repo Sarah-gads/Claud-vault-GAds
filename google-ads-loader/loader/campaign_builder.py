@@ -69,16 +69,16 @@ class CampaignBuilder:
             campaign_resource = self._create_campaign(customer_id, config, budget_resource)
             result["campaign_resource"] = campaign_resource
 
-            # ── 3. Campaign-level negative keywords ──────────────────────────
-            campaign_negs = config.get("campaign_keywords", {}).get("negative", [])
-            if campaign_negs:
+            # ── 3. Campaign-level negative keyword lists ──────────────────────
+            neg_lists = config.get("campaign_keywords", {}).get("negative_lists", [])
+            if neg_lists:
                 neg_count = KeywordUploader(self.client, self.templates_dir).upload_campaign_negatives(
                     customer_id=customer_id,
                     campaign_resource=campaign_resource,
-                    negatives_config=campaign_negs,
+                    negative_lists=neg_lists,
                 )
                 result["campaign_negatives"] = neg_count
-                logger.info(f"Uploaded {neg_count} campaign-level negative keyword(s)")
+                logger.info(f"Uploaded {neg_count} campaign-level negative keyword(s) across {len(neg_lists)} list(s)")
 
             # ── 4. Geo targeting + location exclusions + ad schedule ─────────
             targeting = config.get("targeting", {})
