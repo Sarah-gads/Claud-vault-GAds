@@ -1,0 +1,70 @@
+# Example Client: Acme IT Solutions — Philadelphia, PA
+# This file demonstrates a fully configured client
+
+client:
+  name: "Acme IT Solutions"
+  customer_id: "123-456-7890"
+  mcc_id: ""
+
+campaign:
+  name: "Acme IT - MSP Services - Search"
+  budget_micros: 6500000                # $6.50/day
+  bidding_strategy: "maximize_conversions"
+  target_cpa_micros: 0                  # Uncapped initially
+
+geo_targeting:
+  location_ids:
+    - 1014044                           # Philadelphia, PA
+    - 1015198                           # Wilmington, DE
+  location_names:
+    - "Philadelphia, PA"
+    - "Wilmington, DE"
+
+landing_page:
+  base_url: "https://acmeit.com"
+  path: "/managed-services"
+
+service_area: "Philadelphia"
+
+unique_offers:
+  - "24/7 Help Desk Included"
+  - "No Long-Term Contracts"
+  - "Microsoft 365 Specialists"
+
+call_tracking:
+  phone_number: "+1-215-555-0100"
+  country_code: "US"
+  ctm_account_id: ""
+
+extensions:
+  use_default_sitelinks: true
+  custom_sitelinks:
+    - link_text: "Read Our IT Blog"
+      description1: "Tips for small business IT teams"
+      description2: "Updated weekly by our experts"
+      url_suffix: "/blog"
+  use_default_callouts: true
+  custom_callouts:
+    - "Philadelphia's Trusted MSP"
+  use_default_structured_snippets: true
+
+keywords:
+  use_default_keywords: true
+  city_substitution: "Philadelphia"
+  custom_keywords:
+    - '"it support wilmington"'
+    - '"managed it services delaware"'
+    - '"it support cherry hill"'
+  use_default_negatives: true
+  custom_negatives: []
+
+conversion_goals:
+  inherit_account_goals: true
+
+notifications:
+  clickup:
+    list_id: ""
+    assignee_id: ""
+  discord:
+    enabled: true
+    mention_role: ""
