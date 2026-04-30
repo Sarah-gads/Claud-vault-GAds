@@ -268,12 +268,14 @@ def main():
                 s.sheet_config = config
                 s.sheet_error  = ""
             except Exception as e:
+                import traceback
                 s.sheet_config = None
-                s.sheet_error  = str(e)
+                s.sheet_error  = traceback.format_exc()
         st.rerun()
 
     if s.sheet_error:
-        st.error(f"Could not load sheet: {s.sheet_error}")
+        st.error("Could not load sheet — see details below:")
+        st.code(s.sheet_error)
 
     if s.sheet_config:
         with st.expander("📋 Preview", expanded=True):
