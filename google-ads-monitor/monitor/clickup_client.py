@@ -36,6 +36,7 @@ class ClickUpClient:
             "tags": [
                 "google-ads",
                 "automated-monitor",
+                "actionable",
                 issue.get("type", "unknown").replace("_", "-"),
                 analysis.get("severity", "medium").lower(),
             ],
