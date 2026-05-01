@@ -29,17 +29,25 @@ class ClickUpClient:
         description = self._build_description(analysis, issue)
 
         payload = {
-            "name": analysis["title"],
+            "name": f"{issue.get('account_name', 'Unknown')} — {analysis['title']}",
             "description": description,
             "priority": priority,
             "assignees": [int(self.assignee_id)],
             "tags": [
                 "google-ads",
                 "automated-monitor",
+                "actionable",
                 issue.get("type", "unknown").replace("_", "-"),
                 analysis.get("severity", "medium").lower(),
             ],
             "status": "to do",
+            "notify_all": True,
+            "custom_fields": [
+                {
+                    "id": "0f7cacea-10c6-419f-8501-f1e96e51241b",
+                    "value": "e2c997ea-6188-4f92-9343-6eb8b4b2bf6e",
+                }
+            ],
         }
 
         try:
