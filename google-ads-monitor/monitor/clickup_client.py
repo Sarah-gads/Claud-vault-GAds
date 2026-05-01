@@ -29,7 +29,7 @@ class ClickUpClient:
         description = self._build_description(analysis, issue)
 
         payload = {
-            "name": analysis["title"],
+            "name": f"{issue.get('account_name', 'Unknown')} — {analysis['title']}",
             "description": description,
             "priority": priority,
             "assignees": [int(self.assignee_id)],
