@@ -54,12 +54,10 @@ def main():
 
     checker = AdsChecker(google_credentials)
     analyzer = ClaudeAnalyzer(env["ANTHROPIC_API_KEY"])
-    raw_type_id = os.environ.get("CLICKUP_TASK_TYPE_ID")
     clickup = ClickUpClient(
         api_token=env["CLICKUP_API_TOKEN"],
         list_id=env["CLICKUP_LIST_ID"],
         assignee_id=env["CLICKUP_ASSIGNEE_ID"],
-        task_type_id=int(raw_type_id) if raw_type_id else None,
     )
     dedup = DedupChecker()
 
