@@ -103,8 +103,8 @@ def main():
     # 3. Create ClickUp tasks for actionable issues
     for issue in ads_issues:
         title = (
-            f"[{issue['type'].replace('_', ' ').title()}] "
-            f"{issue.get('account_name', issue.get('client_name', 'Unknown'))}"
+            f"{issue.get('account_name', issue.get('client_name', 'Unknown'))} — "
+            f"{issue['type'].replace('_', ' ').title()}"
         )
         clickup.create_issue_task(
             title=title,
@@ -120,7 +120,7 @@ def main():
         )
 
     for issue in landing_issues:
-        title = f"[Landing Page] {issue['client_name']} — {issue['type'].replace('_', ' ').title()}"
+        title = f"{issue['client_name']} — Landing Page {issue['type'].replace('_', ' ').title()}"
         priority = "High" if issue["status_code"] >= 400 or issue["status_code"] == 0 else "Medium"
         clickup.create_issue_task(
             title=title,
