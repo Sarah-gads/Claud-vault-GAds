@@ -16,13 +16,14 @@ _BASE_URL = "https://api.clickup.com/api/v2"
 
 
 class ClickUpClient:
-    def __init__(self, api_token: str, list_id: str, assignee_id: str):
+    def __init__(self, api_token: str, list_id: str, assignee_id: str, task_type_id: int | None = None):
         self.headers = {
             "Authorization": api_token,
             "Content-Type": "application/json",
         }
         self.list_id = list_id
         self.assignee_id = assignee_id
+        self.task_type_id = task_type_id
 
     def create_task(self, analysis: dict, issue: dict) -> dict | None:
         priority = _PRIORITY_MAP.get(analysis.get("severity", "Medium"), 3)
@@ -41,7 +42,11 @@ class ClickUpClient:
                 analysis.get("severity", "medium").lower(),
             ],
             "status": "to do",
+            "notify_all": True,
         }
+
+        if self.task_type_id is not None:
+            payload["custom_item_id"] = self.task_type_id
 
         try:
             resp = requests.post(
