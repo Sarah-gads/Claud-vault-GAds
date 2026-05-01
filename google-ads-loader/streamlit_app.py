@@ -44,7 +44,6 @@ _REQUIRED_ENV = [
     "GOOGLE_ADS_CLIENT_SECRET",   "GOOGLE_ADS_REFRESH_TOKEN",
     "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
     "CLICKUP_API_TOKEN", "CLICKUP_LIST_ID", "CLICKUP_ASSIGNEE_ID",
-    "DISCORD_WEBHOOK_URL",
 ]
 _BIDDING_LABELS = {
     "maximize_conversions": "Maximize Conversions",
@@ -338,7 +337,7 @@ def _build_config() -> dict:
         "conversion_actions": {"inherit_account_goals": True, "action_ids": []},
         "notifications": {
             "clickup_list_id": "", "clickup_assignee_id": "",
-            "discord_enabled": True, "discord_mention_role": "",
+            "discord_enabled": False, "discord_mention_role": "",
         },
     }
 
@@ -838,7 +837,7 @@ def _tab_launch():
 
     # ── Launch ────────────────────────────────────────────────────────────────
     st.divider()
-    st.warning("⚠️ The campaign will be created **PAUSED**. A ClickUp review task and Discord notification will be sent automatically.")
+    st.warning("⚠️ The campaign will be created **PAUSED**. A ClickUp review task will be created automatically.")
 
     ai_block = bool(analysis and analysis.get("blocking"))
     if ai_block:
@@ -879,7 +878,7 @@ def _run_launch(config: dict):
         from google.ads.googleads.client import GoogleAdsClient
         from loader.campaign_builder import CampaignBuilder, ValidationFailed
         from loader.clickup_client import ClickUpClient
-        from loader.discord_notifier import DiscordNotifier
+
 
         with st.status("Creating campaign…", expanded=True) as status:
             st.write("Connecting to Google Ads API…")
@@ -908,9 +907,6 @@ def _run_launch(config: dict):
                 summary_markdown=result["summary_markdown"],
                 client_name=result["client_name"],
             )
-
-            st.write("Sending Discord notification…")
-            DiscordNotifier(os.environ["DISCORD_WEBHOOK_URL"]).campaign_created(result, config)
 
             status.update(label="Campaign created!", state="complete")
 
