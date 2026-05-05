@@ -95,8 +95,7 @@ class DiscordNotifier:
                 f"**Issue Type:** {label}\n"
                 f"**Priority:** {priority}\n"
                 f"**ClickUp Task Created:** {task_link}\n\n"
-                f"**Summary:**\n" + "\n".join(summary_lines) + "\n\n"
-                f"Please review and take action."
+                f"**Summary:**\n" + "\n".join(summary_lines)
             )
 
         description = "\n\n─────────────────────\n\n".join(sections)
