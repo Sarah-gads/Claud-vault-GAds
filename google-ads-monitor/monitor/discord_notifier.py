@@ -28,7 +28,9 @@ class DiscordNotifier:
     def notify(self, created_tasks: list[dict], total_issues: int, accounts_checked: int) -> None:
         if created_tasks:
             self._post_issues(created_tasks, accounts_checked)
-        self._post_healthy(accounts_checked)
+            self._post_complete(accounts_checked, len(created_tasks))
+        else:
+            self._post_healthy(accounts_checked)
 
     def _post_healthy(self, accounts_checked: int) -> None:
         timestamp = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
@@ -46,6 +48,19 @@ class DiscordNotifier:
                     f"🕒 Automated audit completed: {timestamp}"
                 ),
                 "color": _COLOR_GREEN,
+            }]
+        })
+
+    def _post_complete(self, accounts_checked: int, issues_found: int) -> None:
+        timestamp = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+        self._send({
+            "embeds": [{
+                "description": (
+                    f"Daily audit complete — {accounts_checked} account(s) checked, "
+                    f"{issues_found} issue(s) found and actioned above.\n\n"
+                    f"🕒 {timestamp}"
+                ),
+                "color": 0x5865F2,
             }]
         })
 
