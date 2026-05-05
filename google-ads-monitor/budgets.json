@@ -1,0 +1,16 @@
+{
+  "thresholds": {
+    "overspend_pct": 110,
+    "underspend_pct": 70
+  },
+  "accounts": {
+    "3010346848": {"monthly_budget": 3000, "currency": "USD"},
+    "6820098274": {"monthly_budget": 3000, "currency": "USD"},
+    "4043909039": {"monthly_budget": 8000, "currency": "USD"},
+    "7372382764": {"monthly_budget": 4000, "currency": "USD"},
+    "4237410370": {"monthly_budget": 2000, "currency": "GBP"},
+    "1403571017": {"monthly_budget": 3000, "currency": "USD"},
+    "6883763334": {"monthly_budget": 5000, "currency": "CAD"},
+    "3317005549": {"monthly_budget": 5000, "currency": "USD"}
+  }
+}

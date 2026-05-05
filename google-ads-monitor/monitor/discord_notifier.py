@@ -12,6 +12,8 @@ _ISSUE_LABELS = {
     "zero_impressions": "Zero Impressions",
     "performance_drop": "Performance Drop",
     "conversion_tracking_issue": "Conversion Tracking Issue",
+    "budget_overspend": "Budget Overspend ⚠️",
+    "budget_underspend": "Budget Underspend ⚠️",
 }
 
 _COLOR_GREEN = 0x57F287
