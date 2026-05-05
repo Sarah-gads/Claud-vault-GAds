@@ -100,6 +100,7 @@ class DiscordNotifier:
         })
 
     def _send(self, payload: dict) -> None:
+        payload.setdefault("username", "Google Ads Daily Monitoring")
         try:
             resp = requests.post(self.webhook_url, json=payload, timeout=10)
             resp.raise_for_status()
