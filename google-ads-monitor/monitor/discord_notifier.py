@@ -23,10 +23,10 @@ class DiscordNotifier:
         self.mention = f"<@{mention_user_id}>"
 
     def notify(self, created_tasks: list[dict], total_issues: int, accounts_checked: int) -> None:
-        if total_issues == 0:
-            self._post_healthy(accounts_checked)
-        elif created_tasks:
+        if created_tasks:
             self._post_issues(created_tasks, accounts_checked)
+        else:
+            self._post_healthy(accounts_checked)
 
     def _post_healthy(self, accounts_checked: int) -> None:
         self._send({
