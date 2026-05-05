@@ -28,8 +28,7 @@ class DiscordNotifier:
     def notify(self, created_tasks: list[dict], total_issues: int, accounts_checked: int) -> None:
         if created_tasks:
             self._post_issues(created_tasks, accounts_checked)
-        else:
-            self._post_healthy(accounts_checked)
+        self._post_healthy(accounts_checked)
 
     def _post_healthy(self, accounts_checked: int) -> None:
         timestamp = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
