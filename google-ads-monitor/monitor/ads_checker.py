@@ -20,12 +20,17 @@ class AdsChecker:
             logger.error(f"Failed to list accessible customers: {e}")
             return []
 
-    def check_all_accounts(self) -> list[dict]:
+    def check_all_accounts(self, account_allowlist: list[str] | None = None) -> list[dict]:
         issues = []
         customer_ids = self.get_accessible_customers()
         if not customer_ids:
             logger.warning("No accessible customer accounts found.")
             return []
+
+        if account_allowlist:
+            original = len(customer_ids)
+            customer_ids = [c for c in customer_ids if c in account_allowlist]
+            logger.info(f"Allowlist applied — monitoring {len(customer_ids)}/{original} accounts.")
 
         for customer_id in customer_ids:
             if not self._has_active_campaigns(customer_id):

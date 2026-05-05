@@ -61,8 +61,11 @@ def main():
     )
     dedup = DedupChecker()
 
+    raw_allowlist = os.environ.get("MONITOR_ACCOUNT_IDS", "")
+    account_allowlist = [a.strip().replace("-", "") for a in raw_allowlist.split(",") if a.strip()] or None
+
     logger.info("Starting Google Ads account check...")
-    issues = checker.check_all_accounts()
+    issues = checker.check_all_accounts(account_allowlist=account_allowlist)
 
     if not issues:
         logger.info("No Google Ads issues detected.")
