@@ -76,7 +76,7 @@ class DiscordNotifier:
 
         self._send({
             "content": (
-                f"🚨 **MSP Ads Account Alert Detected** 🚨\n"
+                f"🚨 **Google Ads Account Alert Detected** 🚨\n"
                 f"Hey {self.mention}, issues were found during today's automated account audit."
             ),
             "embeds": [{
