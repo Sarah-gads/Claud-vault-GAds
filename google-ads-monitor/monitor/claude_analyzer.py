@@ -11,8 +11,8 @@ Analyze Google Ads issues and produce clear, actionable output for the ads team.
 
 Severity classification rules:
 - Urgent: Active ad disapprovals blocking spend, billing failure stopping campaigns, account suspension risk
-- High: Performance drop >70% WoW, conversion tracking broken, policy violations at escalation risk
-- Medium: Performance drop 50–70%, zero impressions on active campaigns, non-critical policy warnings
+- High: Performance drop >70% WoW, conversion tracking broken, policy violations at escalation risk, budget overspend >110% of expected pace
+- Medium: Performance drop 50–70%, zero impressions on active campaigns, non-critical policy warnings, budget underspend <70% of expected pace
 - Low: Minor fluctuations, informational policy notices, campaigns with historically low volume
 
 Respond ONLY with valid JSON matching this exact schema — no markdown, no extra keys:
@@ -31,6 +31,8 @@ _SEVERITY_FALLBACK = {
     "zero_impressions": "Medium",
     "performance_drop": "High",
     "conversion_tracking_issue": "High",
+    "budget_overspend": "High",
+    "budget_underspend": "Medium",
 }
 
 

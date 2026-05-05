@@ -266,7 +266,7 @@ class AdsChecker:
             if not p or p["impressions"] == 0:
                 continue
             drop_pct = (p["impressions"] - r["impressions"]) / p["impressions"] * 100
-            if drop_pct >= 5:  # TEST: lowered from 50 — revert after test
+            if drop_pct >= 50:
                 issues.append({
                     "type": "performance_drop",
                     "account_id": customer_id,
