@@ -8,6 +8,7 @@ from monitor.ads_checker import AdsChecker
 from monitor.claude_analyzer import ClaudeAnalyzer
 from monitor.clickup_client import ClickUpClient
 from monitor.dedup import DedupChecker
+from monitor.discord_notifier import DiscordNotifier
 
 load_dotenv()
 
@@ -64,17 +65,24 @@ def main():
     raw_allowlist = os.environ.get("MONITOR_ACCOUNT_IDS", "")
     account_allowlist = [a.strip().replace("-", "") for a in raw_allowlist.split(",") if a.strip()] or None
 
+    discord_webhook = os.environ.get("DISCORD_WEBHOOK_URL", "")
+    discord_user_id = os.environ.get("DISCORD_USER_ID", "")
+    accounts_checked = len(account_allowlist) if account_allowlist else 0
+
     logger.info("Starting Google Ads account check...")
     issues = checker.check_all_accounts(account_allowlist=account_allowlist)
 
     if not issues:
         logger.info("No Google Ads issues detected.")
+        if discord_webhook:
+            DiscordNotifier(discord_webhook, discord_user_id).notify([], 0, accounts_checked)
         return
 
     logger.info(f"Found {len(issues)} issue(s). Analyzing and creating tasks...")
 
     created = 0
     skipped = 0
+    created_tasks = []
 
     for issue in issues:
         if dedup.is_duplicate(issue):
@@ -90,6 +98,7 @@ def main():
         if task:
             dedup.mark_seen(issue)
             created += 1
+            created_tasks.append({"issue": issue, "task": task})
         else:
             logger.warning(
                 f"Failed to create ClickUp task for issue: {issue['type']} "
@@ -99,6 +108,11 @@ def main():
     logger.info(
         f"Run complete — {created} task(s) created, {skipped} duplicate(s) skipped."
     )
+
+    if discord_webhook:
+        DiscordNotifier(discord_webhook, discord_user_id).notify(
+            created_tasks, total_issues=len(issues), accounts_checked=accounts_checked
+        )
 
 
 if __name__ == "__main__":
