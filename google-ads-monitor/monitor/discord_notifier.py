@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 
 import requests
 
@@ -29,10 +30,20 @@ class DiscordNotifier:
             self._post_healthy(accounts_checked)
 
     def _post_healthy(self, accounts_checked: int) -> None:
+        timestamp = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
         self._send({
+            "content": f"Hey {self.mention}, daily account audit completed successfully.",
             "embeds": [{
-                "title": "✅ Google Ads Monitor — All Clear",
-                "description": f"All {accounts_checked} monitored account(s) healthy. No issues detected today.",
+                "title": "✅ Google Ads Account Monitor — All Clear",
+                "description": (
+                    "**Status Summary:**\n"
+                    f"• All {accounts_checked} monitored Google Ads accounts are healthy\n"
+                    "• No billing, policy, or disapproval issues detected\n"
+                    "• No urgent action required\n"
+                    "• Campaigns are operating normally\n\n"
+                    "Great news — everything is running smoothly today.\n\n"
+                    f"🕒 Automated audit completed: {timestamp}"
+                ),
                 "color": _COLOR_GREEN,
             }]
         })
