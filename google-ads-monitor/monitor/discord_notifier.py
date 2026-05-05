@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 _ISSUE_LABELS = {
     "ad_disapproval": "Ad Disapproval",
     "billing_issue": "Billing Issue",
-    "account_verification_issue": "Account Verification Issue",
+    "account_verification_issue": "Account Verification",
     "zero_impressions": "Zero Impressions",
     "performance_drop": "Performance Drop",
     "conversion_tracking_issue": "Conversion Tracking Issue",
@@ -38,26 +38,54 @@ class DiscordNotifier:
         })
 
     def _post_issues(self, created_tasks: list[dict], accounts_checked: int) -> None:
-        lines = []
+        sections = []
         for entry in created_tasks:
             issue = entry["issue"]
             task = entry["task"]
-            label = _ISSUE_LABELS.get(issue.get("type", ""), issue.get("type", "Unknown"))
+            analysis = entry.get("analysis", {})
+
+            label = _ISSUE_LABELS.get(
+                issue.get("type", ""),
+                issue.get("type", "Unknown").replace("_", " ").title(),
+            )
             account = issue.get("account_name", "Unknown Account")
+            priority = analysis.get("severity", "Medium")
             url = task.get("url", "")
-            line = f"🔴 **{account}** — {label}"
-            if url:
-                line += f"\n↳ [View ClickUp Task]({url})"
-            lines.append(line)
+            task_link = f"[View Task]({url})" if url else "N/A"
+
+            summary_lines = []
+            desc = analysis.get("description") or issue.get("details", "")
+            if desc:
+                summary_lines.append(f"• {desc}")
+            actions = analysis.get("recommended_actions", [])
+            if actions:
+                summary_lines.append(f"• {actions[0]}")
+            if not summary_lines:
+                summary_lines.append("• See ClickUp task for details.")
+
+            sections.append(
+                f"**Affected Account:** {account}\n"
+                f"**Issue Type:** {label}\n"
+                f"**Priority:** {priority}\n"
+                f"**ClickUp Task Created:** {task_link}\n\n"
+                f"**Summary:**\n" + "\n".join(summary_lines) + "\n\n"
+                f"Please review and take action."
+            )
+
+        description = "\n\n─────────────────────\n\n".join(sections)
 
         self._send({
-            "content": self.mention,
+            "content": (
+                f"🚨 **MSP Ads Account Alert Detected** 🚨\n"
+                f"Hey {self.mention}, issues were found during today's automated account audit."
+            ),
             "embeds": [{
-                "title": f"⚠️ Google Ads Monitor — {len(created_tasks)} Issue(s) Found",
-                "description": "\n\n".join(lines),
+                "description": description,
                 "color": _COLOR_RED,
-                "footer": {"text": f"{accounts_checked} account(s) monitored"},
-            }]
+                "footer": {
+                    "text": f"{accounts_checked} account(s) monitored • {len(created_tasks)} issue(s) found"
+                },
+            }],
         })
 
     def _send(self, payload: dict) -> None:

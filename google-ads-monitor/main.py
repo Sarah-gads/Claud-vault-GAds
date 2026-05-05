@@ -98,7 +98,7 @@ def main():
         if task:
             dedup.mark_seen(issue)
             created += 1
-            created_tasks.append({"issue": issue, "task": task})
+            created_tasks.append({"issue": issue, "task": task, "analysis": analysis})
         else:
             logger.warning(
                 f"Failed to create ClickUp task for issue: {issue['type']} "
