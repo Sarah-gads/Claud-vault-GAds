@@ -103,7 +103,7 @@ class DiscordNotifier:
 
         self._send({
             "content": (
-                f"🚨 **Google Ads Account Alert Detected** 🚨\n"
+                f"🚨 **Google Ads Account Alert** 🚨\n"
                 f"Hey {self.mention}, issues were found during today's automated account audit."
             ),
             "embeds": [{
