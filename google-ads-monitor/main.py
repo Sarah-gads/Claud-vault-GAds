@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -69,8 +71,15 @@ def main():
     discord_user_id = os.environ.get("DISCORD_USER_ID", "")
     accounts_checked = len(account_allowlist) if account_allowlist else 0
 
+    budgets = None
+    budgets_file = Path("budgets.json")
+    if budgets_file.exists():
+        with open(budgets_file) as f:
+            budgets = json.load(f)
+        logger.info("Loaded budget config for budget pacing checks.")
+
     logger.info("Starting Google Ads account check...")
-    issues = checker.check_all_accounts(account_allowlist=account_allowlist)
+    issues = checker.check_all_accounts(account_allowlist=account_allowlist, budgets=budgets)
 
     if not issues:
         logger.info("No Google Ads issues detected.")
@@ -98,7 +107,7 @@ def main():
         if task:
             dedup.mark_seen(issue)
             created += 1
-            created_tasks.append({"issue": issue, "task": task})
+            created_tasks.append({"issue": issue, "task": task, "analysis": analysis})
         else:
             logger.warning(
                 f"Failed to create ClickUp task for issue: {issue['type']} "

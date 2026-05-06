@@ -60,7 +60,7 @@ class ClickUpClient:
         )
 
         payload = {
-            "name": f"Review & Enable: {result['campaign_name']}",
+            "name": f"{result['client_name']} — Review & Enable: {result['campaign_name']}",
             "description": description,
             "priority": 2,  # High
             "assignees": [self.assignee_id],
@@ -81,7 +81,7 @@ class ClickUpClient:
         client_name: str,
     ) -> dict | None:
         payload = {
-            "name": f"Review & Enable: {campaign_name}",
+            "name": f"{client_name} — Review & Enable: {campaign_name}",
             "description": summary_markdown,
             "priority": 2,
             "assignees": [self.assignee_id],
@@ -108,6 +108,13 @@ class ClickUpClient:
         return self._post_task(payload)
 
     def _post_task(self, payload: dict) -> dict | None:
+        payload["notify_all"] = True
+        payload.setdefault("custom_fields", []).append(
+            {
+                "id": "0f7cacea-10c6-419f-8501-f1e96e51241b",
+                "value": "e2c997ea-6188-4f92-9343-6eb8b4b2bf6e",
+            }
+        )
         try:
             resp = requests.post(
                 f"{_BASE_URL}/list/{self.list_id}/task",

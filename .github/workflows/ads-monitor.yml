@@ -44,5 +44,7 @@ jobs:
           CLICKUP_API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
           CLICKUP_LIST_ID: ${{ secrets.CLICKUP_LIST_ID }}
           CLICKUP_ASSIGNEE_ID: ${{ secrets.CLICKUP_ASSIGNEE_ID }}
-          MONITOR_ACCOUNT_IDS: "3010346848,6820098274,4043909039,7372382764,4237410370,1403571017,6883763334"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}                                                                                                                        
+          DISCORD_USER_ID: "1278268275293425676"   
+          MONITOR_ACCOUNT_IDS: "3010346848,6820098274,4043909039,7372382764,4237410370,1403571017,6883763334,3317005549" 
         run: python main.py

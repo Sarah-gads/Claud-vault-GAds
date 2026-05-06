@@ -1,3 +1,4 @@
+import calendar
 import logging
 from datetime import datetime, timedelta
 
@@ -20,7 +21,7 @@ class AdsChecker:
             logger.error(f"Failed to list accessible customers: {e}")
             return []
 
-    def check_all_accounts(self, account_allowlist: list[str] | None = None) -> list[dict]:
+    def check_all_accounts(self, account_allowlist: list[str] | None = None, budgets: dict | None = None) -> list[dict]:
         issues = []
         customer_ids = self.get_accessible_customers()
         if not customer_ids:
@@ -31,6 +32,11 @@ class AdsChecker:
             original = len(customer_ids)
             customer_ids = [c for c in customer_ids if c in account_allowlist]
             logger.info(f"Allowlist applied — monitoring {len(customer_ids)}/{original} accounts.")
+
+        thresholds = (budgets or {}).get("thresholds", {})
+        overspend_pct = thresholds.get("overspend_pct", 110)
+        underspend_pct = thresholds.get("underspend_pct", 70)
+        account_budgets = (budgets or {}).get("accounts", {})
 
         for customer_id in customer_ids:
             if not self._has_active_campaigns(customer_id):
@@ -44,6 +50,12 @@ class AdsChecker:
                 issues.extend(self._check_zero_impressions(customer_id))
                 issues.extend(self._check_performance_drops(customer_id))
                 issues.extend(self._check_conversion_tracking(customer_id))
+                if customer_id in account_budgets:
+                    b = account_budgets[customer_id]
+                    issues.extend(self._check_budget_pacing(
+                        customer_id, b["monthly_budget"], b["currency"],
+                        overspend_pct, underspend_pct,
+                    ))
             except Exception as e:
                 logger.error(f"Unexpected error checking account {customer_id}: {e}")
 
@@ -326,4 +338,81 @@ class AdsChecker:
                         f"last week but 0 this week — possible conversion tracking breakage."
                     ),
                 })
+        return issues
+
+    def _check_budget_pacing(
+        self,
+        customer_id: str,
+        monthly_budget: float,
+        currency: str,
+        overspend_pct: float,
+        underspend_pct: float,
+    ) -> list[dict]:
+        issues = []
+        today = datetime.today()
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        days_elapsed = today.day
+        month_start = today.replace(day=1).strftime("%Y-%m-%d")
+        today_str = today.strftime("%Y-%m-%d")
+
+        expected_spend = (monthly_budget / days_in_month) * days_elapsed
+        if expected_spend == 0:
+            return []
+
+        query = f"""
+            SELECT
+                customer.descriptive_name,
+                metrics.cost_micros
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+              AND segments.date BETWEEN '{month_start}' AND '{today_str}'
+        """
+        try:
+            total_cost = 0.0
+            account_name = ""
+            for row in self._search(customer_id, query):
+                total_cost += row.metrics.cost_micros / 1_000_000
+                if not account_name:
+                    account_name = row.customer.descriptive_name
+
+            pacing_pct = (total_cost / expected_spend) * 100
+
+            if pacing_pct > overspend_pct:
+                issues.append({
+                    "type": "budget_overspend",
+                    "account_id": customer_id,
+                    "account_name": account_name,
+                    "campaign_id": "",
+                    "ad_id": "",
+                    "actual_spend": round(total_cost, 2),
+                    "expected_spend": round(expected_spend, 2),
+                    "monthly_budget": monthly_budget,
+                    "currency": currency,
+                    "pacing_pct": round(pacing_pct, 1),
+                    "details": (
+                        f"Account is overspending at {pacing_pct:.1f}% of expected pace. "
+                        f"Spent {currency} {total_cost:,.2f} vs expected {currency} {expected_spend:,.2f} "
+                        f"(monthly budget: {currency} {monthly_budget:,.2f})."
+                    ),
+                })
+            elif pacing_pct < underspend_pct:
+                issues.append({
+                    "type": "budget_underspend",
+                    "account_id": customer_id,
+                    "account_name": account_name,
+                    "campaign_id": "",
+                    "ad_id": "",
+                    "actual_spend": round(total_cost, 2),
+                    "expected_spend": round(expected_spend, 2),
+                    "monthly_budget": monthly_budget,
+                    "currency": currency,
+                    "pacing_pct": round(pacing_pct, 1),
+                    "details": (
+                        f"Account is underspending at {pacing_pct:.1f}% of expected pace. "
+                        f"Spent {currency} {total_cost:,.2f} vs expected {currency} {expected_spend:,.2f} "
+                        f"(monthly budget: {currency} {monthly_budget:,.2f})."
+                    ),
+                })
+        except GoogleAdsException as e:
+            logger.error(f"[{customer_id}] Error checking budget pacing: {e}")
         return issues
