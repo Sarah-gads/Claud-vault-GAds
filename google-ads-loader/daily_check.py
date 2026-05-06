@@ -37,6 +37,7 @@ _REQUIRED_ENV = [
 _HERE = Path(__file__).parent
 _CLIENTS_DIR = str(_HERE / "clients")
 _REGISTRY_FILE = _HERE / "campaign_registry.json"
+_BUDGETS_FILE = _HERE.parent / "google-ads-monitor" / "budgets.json"
 
 
 def _load_env() -> dict:
@@ -48,10 +49,18 @@ def _load_env() -> dict:
 
 
 def _load_managed_customer_ids() -> list[str]:
-    """
-    Returns unique customer IDs from the campaign registry (campaigns we created).
-    Falls back to empty list — the monitor handles all-accounts sweeps.
-    """
+    # Primary: accounts listed in budgets.json
+    if _BUDGETS_FILE.exists():
+        try:
+            data = json.loads(_BUDGETS_FILE.read_text(encoding="utf-8"))
+            ids = list(data.get("accounts", {}).keys())
+            if ids:
+                logger.info(f"Monitoring {len(ids)} accounts from budgets.json")
+                return ids
+        except Exception as e:
+            logger.error(f"Failed to read budgets.json: {e}")
+
+    # Fallback: campaign registry
     if not _REGISTRY_FILE.exists():
         return []
     try:
