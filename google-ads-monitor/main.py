@@ -64,12 +64,8 @@ def main():
     )
     dedup = DedupChecker()
 
-    raw_allowlist = os.environ.get("MONITOR_ACCOUNT_IDS", "")
-    account_allowlist = [a.strip().replace("-", "") for a in raw_allowlist.split(",") if a.strip()] or None
-
     discord_webhook = os.environ.get("DISCORD_WEBHOOK_URL", "")
     discord_user_id = os.environ.get("DISCORD_USER_ID", "")
-    accounts_checked = len(account_allowlist) if account_allowlist else 0
 
     budgets = None
     budgets_file = Path("budgets.json")
@@ -77,6 +73,15 @@ def main():
         with open(budgets_file) as f:
             budgets = json.load(f)
         logger.info("Loaded budget config for budget pacing checks.")
+
+    raw_allowlist = os.environ.get("MONITOR_ACCOUNT_IDS", "")
+    account_allowlist = [a.strip().replace("-", "") for a in raw_allowlist.split(",") if a.strip()]
+    if not account_allowlist and budgets:
+        account_allowlist = list(budgets.get("accounts", {}).keys())
+        logger.info(f"Using {len(account_allowlist)} accounts from budgets.json")
+    account_allowlist = account_allowlist or None
+
+    accounts_checked = len(account_allowlist) if account_allowlist else 0
 
     logger.info("Starting Google Ads account check...")
     issues = checker.check_all_accounts(account_allowlist=account_allowlist, budgets=budgets)
