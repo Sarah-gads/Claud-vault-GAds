@@ -15,7 +15,7 @@ def check_all_clients(clients_dir: str) -> list[dict]:
     clients_path = Path(clients_dir)
 
     for config_file in clients_path.glob("*.yaml"):
-        if config_file.name == "client_template.yaml":
+        if config_file.name == "client_template.yaml" or config_file.name.startswith("example_"):
             continue
         try:
             with config_file.open(encoding="utf-8") as f:
