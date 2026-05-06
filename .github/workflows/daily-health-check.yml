@@ -50,4 +50,5 @@ jobs:
           CLICKUP_LIST_ID: ${{ secrets.CLICKUP_LIST_ID }}
           CLICKUP_ASSIGNEE_ID: ${{ secrets.CLICKUP_ASSIGNEE_ID }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_USER_ID: ${{ secrets.DISCORD_USER_ID }}
         run: python daily_check.py

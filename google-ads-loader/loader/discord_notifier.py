@@ -10,9 +10,13 @@ _COLOR_ERROR   = 0xED4245   # red
 _COLOR_INFO    = 0x5865F2   # blurple
 
 
+_SENDER_NAME = "Google Ads Daily Monitoring"
+
+
 class DiscordNotifier:
-    def __init__(self, webhook_url: str):
+    def __init__(self, webhook_url: str, user_id: str = ""):
         self.webhook_url = webhook_url
+        self.user_id = user_id
 
     def campaign_created(self, result: dict, config: dict) -> None:
         budget_daily = config["campaign"]["budget_micros"] / 1_000_000
@@ -93,7 +97,7 @@ class DiscordNotifier:
     ) -> None:
         total = len(issues) + len(landing_issues)
         color = _COLOR_ERROR if total > 0 else _COLOR_SUCCESS
-        mention = f"<@&{mention_role}> " if mention_role else ""
+        mention = f"<@{self.user_id}> " if self.user_id else (f"<@&{mention_role}> " if mention_role else "")
 
         if total == 0:
             summary = "All campaign checks passed. No issues detected."
@@ -130,6 +134,7 @@ class DiscordNotifier:
         return f"<@&{role_id}> " if role_id else ""
 
     def _send(self, payload: dict) -> None:
+        payload.setdefault("username", _SENDER_NAME)
         try:
             resp = requests.post(self.webhook_url, json=payload, timeout=10)
             resp.raise_for_status()
