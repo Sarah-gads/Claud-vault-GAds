@@ -112,8 +112,15 @@ class DiscordNotifier:
             )
             summary = "\n".join(filter(None, [issue_lines, landing_lines]))
 
+        user_mention = f"<@{self.user_id}>" if self.user_id else "Team"
+        content = (
+            f"🚨 Google Ads Account Alert 🚨\n"
+            f"Hey {user_mention}, today's automated account audit is complete. "
+            f"Please review the findings and take action where needed."
+        )
+
         payload = {
-            "content": f"{mention}Daily campaign health check complete.",
+            "content": content,
             "embeds": [
                 {
                     "title": f"Daily Check — {total} Issue(s) Found",
