@@ -14,8 +14,8 @@ from google.auth.transport.requests import Request
 logger = logging.getLogger(__name__)
 
 SHEETS_SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
 ]
 
 

@@ -132,6 +132,81 @@ def _render_summary(config: dict):
 
 
 # ── Launch logic ──────────────────────────────────────────────────────────────
+# ── Template creator ─────────────────────────────────────────────────────────
+def _create_template_sheet(client_name: str = "New Client") -> str:
+    """Create a campaign brief template in Google Drive and return its URL."""
+    from loader.sheet_parser import get_sheets_client
+    gc = get_sheets_client()
+    ss = gc.create(f"Campaign Brief — {client_name}")
+
+    tabs = {
+        "Campaign": [
+            ["Key", "Value"],
+            ["Campaign Name", f"{client_name} - MSP Services - Search"],
+            ["Daily Budget", "50"],
+            ["Bidding Strategy", "maximize_conversions"],
+            ["Landing Page URL", "https://"],
+            ["Call Number", ""],
+            ["Target CPA", ""],
+        ],
+        "Ad Groups": [
+            ["Ad Group Name", "CPC Bid ($)"],
+            ["General", "2.00"],
+            ["Cybersecurity", "2.00"],
+        ],
+        "Keywords": [
+            ["Ad Group Name", "Keyword", "Match Type"],
+            ["General", "managed it services", "PHRASE"],
+            ["General", "it support", "PHRASE"],
+            ["General", "managed service provider", "BROAD"],
+            ["Cybersecurity", "cybersecurity services", "PHRASE"],
+        ],
+        "Negatives": [
+            ["List Name", "Keyword", "Match Type"],
+            ["General Negatives", "free", "BROAD"],
+            ["General Negatives", "jobs", "BROAD"],
+            ["General Negatives", "training", "BROAD"],
+            ["General Negatives", "certification", "BROAD"],
+        ],
+        "Ad Copy": [
+            ["Ad Group", "RSA #"] + [f"H{i}" for i in range(1, 16)] + [f"D{i}" for i in range(1, 5)],
+            ["General", "1", "Managed IT Services", "24/7 Help Desk Support", "Flat-Rate IT Plans",
+             "No Long-Term Contracts", "Free IT Assessment", "", "", "", "", "", "", "", "", "",
+             "Expert managed IT for small businesses. No contracts.", "24/7 help desk & cybersecurity support."],
+        ],
+        "Extensions": [
+            ["Type", "Value 1", "Value 2", "Value 3", "Value 4"],
+            ["Sitelink", "See Our Pricing", "https://", "Flat-rate IT plans", "No hidden fees"],
+            ["Sitelink", "Free IT Assessment", "https://", "No obligation", "Schedule today"],
+            ["Callout", "24/7 Help Desk Support", "", "", ""],
+            ["Callout", "No Long-Term Contracts", "", "", ""],
+            ["Callout", "Free IT Assessment", "", "", ""],
+            ["Snippet", "Services", "Managed IT", "", ""],
+            ["Snippet", "Services", "Cybersecurity", "", ""],
+            ["Snippet", "Services", "Cloud Solutions", "", ""],
+        ],
+        "Targeting": [
+            ["Location ID", "Location Name"],
+            ["1014044", "Philadelphia PA"],
+        ],
+    }
+
+    # Rename default Sheet1 to first tab, add the rest
+    first = True
+    for tab_name, rows in tabs.items():
+        if first:
+            ws = ss.sheet1
+            ws.update_title(tab_name)
+            first = False
+        else:
+            ws = ss.add_worksheet(title=tab_name, rows=50, cols=26)
+        ws.update(rows, "A1")
+
+    # Share publicly readable so teammates can open it
+    ss.share(None, perm_type="anyone", role="writer")
+    return f"https://docs.google.com/spreadsheets/d/{ss.id}"
+
+
 class _LogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
@@ -246,9 +321,19 @@ def main():
     # ── Step 2: Google Sheet ──────────────────────────────────────────────────
     st.markdown("### 2 · Paste Google Sheet URL")
 
-    sheets_token = os.environ.get("GOOGLE_SHEETS_REFRESH_TOKEN") or os.environ.get("GOOGLE_ADS_REFRESH_TOKEN")
+    sheets_token = os.environ.get("GOOGLE_SHEETS_REFRESH_TOKEN", "").strip()
     if not sheets_token:
         st.warning("No Sheets token found. Run `python setup_sheets_auth.py` once to generate one.")
+
+    if st.button("📋 Create Template Sheet", disabled=not sheets_token):
+        with st.spinner("Creating template in your Google Drive…"):
+            try:
+                url = _create_template_sheet(s.client_name or "New Client")
+                s.sheet_url = url
+                st.success(f"Template created! [Open Sheet]({url})")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not create template: {e}")
 
     col_url, col_btn = st.columns([4, 1])
     with col_url:

@@ -11,8 +11,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 load_dotenv(Path(__file__).parent / ".env")
 
 SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
 ]
 
 client_id     = (os.environ.get("GOOGLE_SHEETS_CLIENT_ID") or os.environ.get("GOOGLE_ADS_CLIENT_ID", "")).strip()
