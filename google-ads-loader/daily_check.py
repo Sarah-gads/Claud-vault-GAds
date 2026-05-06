@@ -84,7 +84,7 @@ def main():
     clickup = ClickUpClient(
         env["CLICKUP_API_TOKEN"], env["CLICKUP_LIST_ID"], env["CLICKUP_ASSIGNEE_ID"]
     )
-    discord = DiscordNotifier(env["DISCORD_WEBHOOK_URL"])
+    discord = DiscordNotifier(env["DISCORD_WEBHOOK_URL"], os.environ.get("DISCORD_USER_ID", ""))
 
     # 1. Google Ads checks (disapprovals, billing, conversion tracking)
     customer_ids = _load_managed_customer_ids()
